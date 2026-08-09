@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atum Localization — Runtime i18n for React</title>
+<meta name="description" content="A lightweight, TypeScript-first localization library for React. Runtime language switching, fallback languages, built on useSyncExternalStore.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-elevated:#f5f7fa;
+    --bg-elevated-2:#eef1f6;
+    --border:#dde1e8;
+    --border-soft:#e8eaef;
+    --text:#12151c;
+    --text-muted:#5a6072;
+    --text-faint:#8a90a3;
+    --accent:#1669f2;
+    --accent-dim:#0e51c9;
+    --accent-soft:rgba(22,105,242,0.1);
+    --accent-soft-strong:rgba(22,105,242,0.18);
+    --teal:#4fd1c5;
+    --teal-soft:rgba(79,209,197,0.12);
+    --radius:10px;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(22,105,242,0.06), transparent 40%),
+      radial-gradient(circle at 85% 25%, rgba(79,209,197,0.05), transparent 40%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  a{color:inherit;text-decoration:none;}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px;position:relative;z-index:1;}
+
+  ::selection{background:var(--accent-soft-strong);color:var(--text);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+    html{scroll-behavior:auto;}
+  }
+
+  /* ---------- NAV ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,0.82);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 28px;
+    max-width:1120px;margin:0 auto;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--font-display);
+    font-weight:600;font-size:16px;letter-spacing:-0.01em;
+  }
+  .brand-mark{
+    width:26px;height:26px;border-radius:7px;
+    background:linear-gradient(145deg, var(--accent), #0e51c9);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:600;font-size:13px;color:#ffffff;
+    flex-shrink:0;
+  }
+  .brand-sub{
+    color:var(--text-faint);font-family:var(--font-mono);font-size:11px;
+    border-left:1px solid var(--border);padding-left:10px;margin-left:2px;
+  }
+  .nav-links{display:flex;align-items:center;gap:28px;}
+  .nav-links a{
+    font-size:14px;color:var(--text-muted);transition:color 0.15s ease;
+  }
+  .nav-links a:hover{color:var(--text);}
+  .nav-links a:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px;}
+  .nav-cta{
+    display:flex;align-items:center;gap:10px;
+  }
+  .btn-npm{
+    font-family:var(--font-mono);font-size:12.5px;
+    color:var(--text-muted);
+    border:1px solid var(--border);
+    padding:7px 12px;border-radius:7px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .btn-gh{
+    color:var(--text-muted);
+    display:flex;align-items:center;
+    padding:6px;border-radius:7px;
+    transition:color 0.15s ease, background 0.15s ease;
+  }
+  .btn-gh:hover{color:var(--text);background:var(--bg-elevated);}
+  @media (max-width:760px){
+    .nav-links{display:none;}
+  }
+  @media (max-width:600px){
+    nav{padding:14px 18px;}
+    .brand-sub{display:none;}
+    .btn-npm span{display:none;}
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:88px 0 90px;
+    position:relative;
+  }
+  .hero-grid{
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:56px;
+    align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--font-mono);font-size:12px;
+    color:var(--accent);
+    background:var(--accent-soft);
+    border:1px solid rgba(22,105,242,0.25);
+    padding:6px 12px;border-radius:100px;
+    margin-bottom:22px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+
+  h1{
+    font-family:var(--font-display);
+    font-size:clamp(30px, 4.6vw, 54px);
+    font-weight:600;
+    line-height:1.08;
+    letter-spacing:-0.02em;
+    margin-bottom:20px;
+  }
+  h1 .hl{
+    background:linear-gradient(100deg, var(--accent), #6fa8ff 60%, var(--accent));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  .hero-desc{
+    font-size:17px;color:var(--text-muted);
+    max-width:480px;margin-bottom:34px;
+  }
+  .hero-desc code{
+    font-family:var(--font-mono);font-size:0.92em;
+    color:var(--teal);background:var(--teal-soft);
+    padding:1px 6px;border-radius:4px;
+  }
+
+  .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:36px;}
+
+  .install-box{
+    display:flex;align-items:center;gap:12px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    padding:12px 8px 12px 18px;
+    border-radius:9px;
+    font-family:var(--font-mono);font-size:14px;
+  }
+  .install-box .prompt{color:var(--text-faint);}
+  .install-box .pkg{color:var(--text);}
+  .install-box .pkg .name{color:var(--accent);}
+  .copy-btn{
+    background:var(--bg-elevated-2);
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    padding:7px 10px;border-radius:6px;
+    font-family:var(--font-mono);font-size:11px;
+    cursor:pointer;
+    transition:all 0.15s ease;
+    display:flex;align-items:center;gap:5px;
+  }
+  .copy-btn:hover{color:var(--text);border-color:#c3c9d4;}
+  .copy-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .btn-secondary{
+    display:flex;align-items:center;gap:8px;
+    padding:12px 18px;border-radius:9px;
+    border:1px solid var(--border);
+    font-size:14px;color:var(--text-muted);
+    transition:all 0.15s ease;
+  }
+  .btn-secondary:hover{color:var(--text);border-color:#c3c9d4;background:var(--bg-elevated);}
+  .btn-secondary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .hero-meta{
+    display:flex;gap:22px;flex-wrap:wrap;
+    font-family:var(--font-mono);font-size:12.5px;color:var(--text-faint);
+  }
+  .hero-meta span{display:flex;align-items:center;gap:6px;}
+  .hero-meta b{color:var(--text-muted);font-weight:500;}
+
+  @media (max-width:900px){
+    .hero{padding:56px 0 60px;}
+    .hero-grid{grid-template-columns:1fr;gap:40px;}
+    .demo-card{max-width:480px;margin:0 auto;}
+  }
+  @media (max-width:600px){
+    .hero{padding:44px 0 48px;}
+    .hero-desc{max-width:100%;}
+    .install-box{flex-wrap:wrap;padding:12px 14px;}
+    .hero-actions{flex-direction:column;align-items:stretch;}
+    .btn-secondary,.install-box{width:100%;}
+    .hero-meta{gap:14px;font-size:11.5px;}
+  }
+
+  /* ---------- DEMO CARD (signature element) ---------- */
+  .demo-card{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 30px 60px -25px rgba(20,30,50,0.18);
+  }
+  .demo-titlebar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;
+    border-bottom:1px solid var(--border-soft);
+    background:var(--bg-elevated-2);
+  }
+  .demo-titlebar .file{
+    font-family:var(--font-mono);font-size:12px;color:var(--text-faint);
+    display:flex;align-items:center;gap:8px;
+  }
+  .demo-dots{display:flex;gap:6px;}
+  .demo-dots span{width:9px;height:9px;border-radius:50%;background:#d3d8e1;}
+
+  .demo-body{padding:28px 24px 24px;}
+
+  .demo-label{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+    text-transform:uppercase;letter-spacing:0.06em;
+    margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .demo-label .fn{color:var(--teal);}
+
+  .demo-app{
+    background:var(--bg);
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:26px 24px;
+    min-height:210px;
+    display:flex;flex-direction:column;
+  }
+  .demo-app h3{
+    font-family:var(--font-display);font-size:20px;font-weight:600;
+    margin-bottom:20px;min-height:26px;
+    transition:opacity 0.2s ease;
+  }
+  .demo-app .row{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;}
+  .demo-btn{
+    font-family:var(--font-body);font-size:13.5px;font-weight:500;
+    padding:9px 16px;border-radius:7px;
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    min-width:64px;text-align:center;
+    transition:opacity 0.2s ease;
+  }
+  .demo-btn.primary{
+    background:var(--accent-soft);border-color:rgba(22,105,242,0.3);color:var(--accent);
+  }
+
+  .lang-switch{
+    margin-top:auto;
+    display:flex;align-items:center;justify-content:space-between;
+    padding-top:18px;border-top:1px solid var(--border-soft);
+  }
+  .lang-switch-label{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+  }
+  .lang-toggle{display:flex;background:var(--bg-elevated-2);border:1px solid var(--border);border-radius:8px;padding:3px;}
+  .lang-toggle button{
+    font-family:var(--font-mono);font-size:12px;
+    padding:6px 13px;border-radius:6px;
+    color:var(--text-faint);
+    cursor:pointer;
+    transition:all 0.18s ease;
+  }
+  .lang-toggle button.active{
+    background:var(--accent);color:#ffffff;font-weight:600;
+  }
+  .lang-toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .demo-caption{
+    margin-top:16px;
+    font-size:12.5px;color:var(--text-faint);
+    display:flex;align-items:center;gap:7px;
+  }
+  .demo-caption .pulse{
+    width:6px;height:6px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 0 0 rgba(79,209,197,0.5);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(79,209,197,0.4);}
+    70%{box-shadow:0 0 0 6px rgba(79,209,197,0);}
+    100%{box-shadow:0 0 0 0 rgba(79,209,197,0);}
+  }
+
+  .fade{animation:fadein 0.28s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+
+  @media (max-width:600px){
+    .demo-body{padding:20px 16px 18px;}
+    .demo-app{padding:20px 16px;min-height:auto;}
+    .demo-app .row{gap:8px;}
+    .demo-btn{padding:8px 12px;font-size:13px;min-width:56px;}
+    .lang-switch{flex-direction:column;align-items:flex-start;gap:10px;}
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section{padding:86px 0;position:relative;}
+  .section-head{max-width:560px;margin-bottom:48px;}
+  .section-eyebrow{
+    font-family:var(--font-mono);font-size:12px;color:var(--teal);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;
+  }
+  h2{
+    font-family:var(--font-display);
+    font-size:clamp(24px, 3vw, 34px);
+    font-weight:600;letter-spacing:-0.015em;
+    margin-bottom:12px;
+  }
+  .section-desc{color:var(--text-muted);font-size:15.5px;}
+  .divider{height:1px;background:var(--border-soft);border:none;}
+
+  @media (max-width:600px){
+    section{padding:52px 0;}
+    .section-head{margin-bottom:32px;}
+  }
+
+  /* ---------- FEATURES ---------- */
+  .features-grid{
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:1px;
+    background:var(--border-soft);
+    border:1px solid var(--border-soft);
+    border-radius:12px;overflow:hidden;
+  }
+  .feature{
+    background:var(--bg);
+    padding:28px 26px;
+    transition:background 0.2s ease;
+  }
+  .feature:hover{background:var(--bg-elevated);}
+  .feature-icon{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:16px;color:var(--accent);
+  }
+  .feature h4{
+    font-family:var(--font-display);font-size:15.5px;font-weight:600;
+    margin-bottom:8px;
+  }
+  .feature p{font-size:13.5px;color:var(--text-muted);line-height:1.55;}
+  @media (max-width:760px){
+    .features-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:600px){
+    .feature{padding:22px 18px;}
+  }
+
+  /* ---------- STEPS ---------- */
+  .steps{display:flex;flex-direction:column;}
+  .step{
+    display:grid;
+    grid-template-columns:56px 1fr;
+    gap:24px;
+    padding:34px 0;
+    border-top:1px solid var(--border-soft);
+  }
+  .step:last-child{padding-bottom:0;}
+  .step-num{
+    font-family:var(--font-mono);font-size:13px;color:var(--text-faint);
+    display:flex;flex-direction:column;align-items:center;
+    padding-top:4px;
+  }
+  .step-num b{
+    font-size:20px;color:var(--accent);font-weight:600;
+    font-family:var(--font-display);
+  }
+  .step-content h4{
+    font-family:var(--font-display);font-size:17px;font-weight:600;
+    margin-bottom:6px;
+  }
+  .step-content > p{font-size:14px;color:var(--text-muted);margin-bottom:16px;max-width:560px;}
+
+  pre{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:18px 20px;
+    overflow-x:auto;
+    font-family:var(--font-mono);
+    font-size:13px;
+    line-height:1.65;
+    -webkit-overflow-scrolling:touch;
+  }
+  pre .fname{
+    display:block;color:var(--text-faint);font-size:11.5px;margin-bottom:10px;
+    padding-bottom:10px;border-bottom:1px solid var(--border-soft);
+  }
+  .tok-kw{color:#9c5fd6;}
+  .tok-str{color:#3a9a55;}
+  .tok-fn{color:#1a9c8f;}
+  .tok-cm{color:var(--text-faint);}
+  .tok-prop{color:#2f6fd8;}
+  .tok-tag{color:#d1465a;}
+  .tok-punc{color:var(--text-faint);}
+
+  @media (max-width:600px){
+    .step{grid-template-columns:40px 1fr;gap:16px;padding:24px 0;}
+    .step-num b{font-size:17px;}
+    pre{padding:14px 14px;font-size:12px;}
+  }
+
+  /* ---------- API ---------- */
+  .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .api-card{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:11px;
+    padding:22px 24px;
+  }
+  .api-card h4{
+    font-family:var(--font-mono);font-size:14.5px;color:var(--accent);
+    margin-bottom:10px;
+  }
+  .api-card p{font-size:13.5px;color:var(--text-muted);margin-bottom:14px;}
+  .api-card pre{padding:14px 16px;font-size:12.5px;margin:0;}
+
+  .options-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;}
+  .options-table th{
+    text-align:left;font-family:var(--font-mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);
+    padding:10px 0;border-bottom:1px solid var(--border);font-weight:500;
+  }
+  .options-table td{padding:12px 0;border-bottom:1px solid var(--border-soft);color:var(--text-muted);}
+  .options-table td:first-child{font-family:var(--font-mono);color:var(--text);font-size:13px;}
+  .options-table code.type{
+    font-family:var(--font-mono);font-size:12px;color:var(--teal);
+    background:var(--teal-soft);padding:1px 6px;border-radius:4px;
+  }
+  .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  @media (max-width:760px){
+    .api-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:600px){
+    .api-card{padding:18px 16px;}
+    .options-table{min-width:420px;}
+  }
+
+  /* ---------- FALLBACK DEMO ---------- */
+  .fallback-panel{
+    display:grid;grid-template-columns:1fr 1fr;gap:0;
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .fallback-side{padding:30px 32px;}
+  .fallback-side + .fallback-side{border-left:1px solid var(--border-soft);}
+  .fallback-side h4{
+    font-family:var(--font-mono);font-size:12px;color:var(--text-faint);
+    text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;
+  }
+  .key-input-row{display:flex;gap:8px;margin-bottom:16px;}
+  .key-input{
+    flex:1;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--font-mono);font-size:13px;
+    padding:10px 12px;border-radius:7px;
+  }
+  .key-input:focus{outline:none;border-color:var(--accent);}
+  .key-chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    font-family:var(--font-mono);font-size:11.5px;
+    padding:5px 10px;border-radius:6px;
+    background:var(--bg-elevated-2);border:1px solid var(--border);
+    color:var(--text-muted);cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .chip:hover{color:var(--text);border-color:#c3c9d4;}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .fallback-result{
+    background:var(--bg);border:1px solid var(--border-soft);border-radius:8px;
+    padding:16px;font-family:var(--font-mono);font-size:13px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .fallback-result .line{display:flex;justify-content:space-between;color:var(--text-faint);}
+  .fallback-result .line b{color:var(--text);font-weight:500;}
+  .fallback-result .out{color:var(--accent);}
+  .fallback-result .out.miss{color:#d1465a;}
+
+  @media (max-width:760px){
+    .fallback-panel{grid-template-columns:1fr;}
+    .fallback-side + .fallback-side{border-left:none;border-top:1px solid var(--border-soft);}
+  }
+  @media (max-width:600px){
+    .fallback-side{padding:20px 18px;}
+    .key-input-row{flex-direction:column;}
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    padding:56px 0 40px;
+    border-top:1px solid var(--border-soft);
+  }
+  .footer-top{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    flex-wrap:wrap;gap:32px;margin-bottom:40px;
+  }
+  .footer-install .install-box{margin-top:14px;}
+  footer h5{
+    font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:4px;
+  }
+  footer .foot-desc{font-size:13.5px;color:var(--text-muted);max-width:320px;}
+  .footer-links{display:flex;gap:56px;flex-wrap:wrap;}
+  .footer-col h6{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+    text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;
+  }
+  .footer-col a{
+    display:block;font-size:13.5px;color:var(--text-muted);margin-bottom:10px;
+    transition:color 0.15s ease;
+  }
+  .footer-col a:hover{color:var(--text);}
+  .footer-bottom{
+    display:flex;justify-content:space-between;align-items:center;
+    padding-top:24px;border-top:1px solid var(--border-soft);
+    font-size:12.5px;color:var(--text-faint);flex-wrap:wrap;gap:12px;
+  }
+  .footer-bottom .license{
+    font-family:var(--font-mono);
+    background:var(--bg-elevated);border:1px solid var(--border);
+    padding:4px 10px;border-radius:6px;color:var(--text-muted);
+  }
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;}
+    .demo-card{max-width:480px;}
+  }
+  @media (max-width:600px){
+    .install-box{flex-wrap:wrap;}
+    .hero-actions{flex-direction:column;align-items:stretch;}
+    footer{padding:40px 0 28px;}
+    .footer-top{gap:24px;margin-bottom:28px;}
+    .footer-links{gap:28px;}
+    .footer-col{flex:1 1 45%;}
+    .footer-bottom{flex-direction:column;align-items:flex-start;gap:10px;}
+  }
+  @media (max-width:400px){
+    .wrap{padding:0 16px;}
+    h1{font-size:26px;}
+    .demo-app .row{flex-direction:column;}
+    .demo-btn{width:100%;}
+  }
+
+  #btnEn,
+#btnTa{
+  font-family:var(--font-mono);font-size:12px;
+  padding:6px 13px;border-radius:6px;
+  color:var(--text-faint);
+  cursor:pointer;
+  border:none;
+  background:transparent;
+  transition:all 0.18s ease;
+}
+
+#btnEn.active,
+#btnTa.active{
+  background:var(--accent);color:#ffffff;font-weight:600;
+}
+
+#btnEn:hover:not(.active),
+#btnTa:hover:not(.active){
+  color:var(--text);
+}
+
+#btnEn:focus-visible,
+#btnTa:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+
+.btn-npm{
+  font-family:var(--font-mono);font-size:12.5px;
+  color:var(--text-muted);
+  border:1px solid var(--border);
+  padding:7px 12px;border-radius:7px;
+  display:flex;align-items:center;gap:8px;
+}
+.btn-npm svg{flex-shrink:0;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+   <div class="brand">
+  <img
+    src="./assets/atum-locale.svg"
+    alt="Atum Localization"
+    style="border-radius:7px; flex-shrink:0;"
+  >
+  <span class="brand-sub">v0.1</span>
+</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#getting-started">Docs</a>
+      <a href="#api">API</a>
+      <a href="#fallback">Fallback</a>
+    </div>
+ <div class="nav-cta">
+  <a class="btn-npm" href="https://www.npmjs.com/package/atum-localization" target="_blank" rel="noopener">
+    <svg width="18" height="18" viewBox="0 0 27 27" fill="none" aria-hidden="true">
+      <rect width="27" height="27" rx="4" fill="#CB3837"/>
+      <path d="M4 4h19v19H4V4z" fill="#CB3837"/>
+      <path d="M4 4v19h9.5v-15h4.75V23H23V4H4z" fill="#fff"/>
+    </svg>
+    <span>atum-localization</span>
+  </a>
+</div>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow"><span class="dot"></span>TypeScript-first · React 18+</div>
+        <h1>Localization that <span class="hl">just works</span> at runtime.</h1>
+        <p class="hero-desc">
+          A lightweight i18n library for React. Switch languages instantly, fall back gracefully when a
+          translation is missing, and keep components in sync with <code>useSyncExternalStore</code> —
+          no external localization dependencies required.
+        </p>
+
+        <div class="hero-actions">
+          <div class="install-box">
+            <span class="prompt">$</span>
+            <span class="pkg">npm install <span class="name">atum-localization</span></span>
+            <button class="copy-btn" id="copyBtn" aria-label="Copy install command">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" stroke-width="1.8"/></svg>
+              <span id="copyLabel">Copy</span>
+            </button>
+          </div>
+          <a class="btn-secondary" href="#getting-started">
+            Read the docs
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          <span><b>License</b> MIT</span>
+          <span><b>Peer deps</b> react ≥18, react-dom ≥18</span>
+          <span><b>Formats</b> ESM &amp; CJS</span>
+        </div>
+      </div>
+
+      <div class="demo-card">
+        <div class="demo-titlebar">
+          <span class="file">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v7h7" stroke="currentColor" stroke-width="1.6"/></svg>
+            Home.tsx
+          </span>
+          <div class="demo-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="demo-body">
+          <div class="demo-label">live demo <span class="fn">useTranslation()</span> + <span class="fn">useLanguage()</span></div>
+          <div class="demo-app">
+            <h3 id="demoTitle" class="fade">Atum Localization</h3>
+            <div class="row">
+              <span class="demo-btn primary" id="demoLogin">Login</span>
+              <span class="demo-btn" id="demoSave">Save</span>
+              <span class="demo-btn" id="demoCancel">Cancel</span>
+            </div>
+            <div class="lang-switch">
+              <span class="lang-switch-label" id="demoLangLabel">LANGUAGE</span>
+              <div class="lang-toggle" role="group" aria-label="Switch language">
+                <button id="btnEn" class="active" onclick="setDemoLang('en')">en</button>
+                <button id="btnTa" onclick="setDemoLang('ta')">ta</button>
+              </div>
+            </div>
+          </div>
+          <div class="demo-caption"><span class="pulse"></span>setLanguage() re-renders instantly, no reload</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Why atum-localization</div>
+        <h2>Small API. Real-time updates. Zero bloat.</h2>
+        <p class="section-desc">Everything the library does, and nothing it makes you carry.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.4 2.6M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Runtime language switching</h4>
+          <p>Call <code>setLanguage()</code> anywhere in the tree and every connected component updates immediately.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 12h6l3 8 4-16 3 8h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Fallback language support</h4>
+          <p>Missing a key in the active locale? It resolves from the configured fallback before giving up.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M9 4v16" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <h4>React Context integration</h4>
+          <p>One provider at the root. Every hook downstream reads from the same localization instance.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M13 3l8 8M13 3v6h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>TypeScript support</h4>
+          <p>Ships with full type declarations, so resources and options are checked as you write them.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <h4>No external i18n deps</h4>
+          <p>No gettext, no ICU parser, no locale-data bundle. Just your own resource objects.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </div>
+          <h4>Built on useSyncExternalStore</h4>
+          <p>Subscriptions are handled the way React itself recommends for external state — efficient by default.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- GETTING STARTED -->
+  <section id="getting-started">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Getting started</div>
+        <h2>Five steps to a localized app</h2>
+        <p class="section-desc">The order matters here — each step builds on the last.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num"><b>01</b></div>
+          <div class="step-content">
+            <h4>Create translation resources</h4>
+            <p>Plain objects, one per language. Keys are whatever you want — <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">SCREAMING_CASE</code> keeps them easy to spot in JSX.</p>
+            <pre><span class="fname">locales/en.ts</span><span class="tok-kw">export default</span> {
+  <span class="tok-prop">TITLE</span>: <span class="tok-str">"Atum Localization"</span>,
+  <span class="tok-prop">LOGIN</span>: <span class="tok-str">"Login"</span>,
+  <span class="tok-prop">SAVE</span>: <span class="tok-str">"Save"</span>,
+  <span class="tok-prop">CANCEL</span>: <span class="tok-str">"Cancel"</span>,
+  <span class="tok-prop">LANGUAGE</span>: <span class="tok-str">"Language"</span>,
+};</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"><b>02</b></div>
+          <div class="step-content">
+            <h4>Create the localization instance</h4>
+            <p>Wire your resources together with a default and a fallback language.</p>
+            <pre><span class="fname">localization.ts</span><span class="tok-kw">import</span> { createLocalization } <span class="tok-kw">from</span> <span class="tok-str">"atum-localization"</span>;
+<span class="tok-kw">import</span> en <span class="tok-kw">from</span> <span class="tok-str">"./locales/en"</span>;
+<span class="tok-kw">import</span> ta <span class="tok-kw">from</span> <span class="tok-str">"./locales/ta"</span>;
+
+<span class="tok-kw">export const</span> localization = <span class="tok-fn">createLocalization</span>({
+  <span class="tok-prop">defaultLanguage</span>: <span class="tok-str">"en"</span>,
+  <span class="tok-prop">fallbackLanguage</span>: <span class="tok-str">"en"</span>,
+  <span class="tok-prop">resources</span>: { en, ta },
+});</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"><b>03</b></div>
+          <div class="step-content">
+            <h4>Wrap your application</h4>
+            <p>Mount <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">LocalizationProvider</code> once, at the root.</p>
+            <pre><span class="fname">main.tsx</span><span class="tok-kw">import</span> { LocalizationProvider } <span class="tok-kw">from</span> <span class="tok-str">"atum-localization"</span>;
+<span class="tok-kw">import</span> { localization } <span class="tok-kw">from</span> <span class="tok-str">"./localization"</span>;
+
+<span class="tok-tag">&lt;LocalizationProvider</span> <span class="tok-prop">localization</span>=<span class="tok-punc">{</span>localization<span class="tok-punc">}</span><span class="tok-tag">&gt;</span>
+  <span class="tok-tag">&lt;App /&gt;</span>
+<span class="tok-tag">&lt;/LocalizationProvider&gt;</span></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"><b>04</b></div>
+          <div class="step-content">
+            <h4>Translate content</h4>
+            <p><code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">useTranslation()</code> returns a <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">t()</code> function scoped to the current language.</p>
+            <pre><span class="fname">Home.tsx</span><span class="tok-kw">import</span> { useTranslation } <span class="tok-kw">from</span> <span class="tok-str">"atum-localization"</span>;
+
+<span class="tok-kw">export default function</span> <span class="tok-fn">Home</span>() {
+  <span class="tok-kw">const</span> { t } = <span class="tok-fn">useTranslation</span>();
+  <span class="tok-kw">return</span> <span class="tok-tag">&lt;h1&gt;</span>{t(<span class="tok-str">"TITLE"</span>)}<span class="tok-tag">&lt;/h1&gt;</span>;
+}</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"><b>05</b></div>
+          <div class="step-content">
+            <h4>Change language</h4>
+            <p><code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">useLanguage()</code> gives you the active language and a setter — this is what powers the demo above.</p>
+            <pre><span class="fname">LanguageSelector.tsx</span><span class="tok-kw">import</span> { useLanguage } <span class="tok-kw">from</span> <span class="tok-str">"atum-localization"</span>;
+
+<span class="tok-kw">export default function</span> <span class="tok-fn">LanguageSelector</span>() {
+  <span class="tok-kw">const</span> { language, setLanguage } = <span class="tok-fn">useLanguage</span>();
+  <span class="tok-kw">return</span> (
+    <span class="tok-tag">&lt;select</span> <span class="tok-prop">value</span>=<span class="tok-punc">{</span>language<span class="tok-punc">}</span> <span class="tok-prop">onChange</span>=<span class="tok-punc">{</span>e =&gt; <span class="tok-fn">setLanguage</span>(e.target.value)<span class="tok-punc">}</span><span class="tok-tag">&gt;</span>
+      <span class="tok-tag">&lt;option</span> <span class="tok-prop">value</span>=<span class="tok-str">"en"</span><span class="tok-tag">&gt;</span>English<span class="tok-tag">&lt;/option&gt;</span>
+      <span class="tok-tag">&lt;option</span> <span class="tok-prop">value</span>=<span class="tok-str">"ta"</span><span class="tok-tag">&gt;</span>Tamil<span class="tok-tag">&lt;/option&gt;</span>
+    <span class="tok-tag">&lt;/select&gt;</span>
+  );
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- API REFERENCE -->
+  <section id="api">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">API reference</div>
+        <h2>Everything the package exports</h2>
+        <p class="section-desc">One factory function, one provider, two hooks.</p>
+      </div>
+
+      <div class="api-grid">
+        <div class="api-card">
+          <h4>createLocalization(options)</h4>
+          <p>Creates a localization instance from your resources.</p>
+          <table class="options-table">
+            <thead>
+              <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>defaultLanguage</td><td><code class="type">string</code></td><td>Initial app language</td></tr>
+              <tr><td>fallbackLanguage</td><td><code class="type">string</code></td><td>Used when a key is missing</td></tr>
+              <tr><td>resources</td><td><code class="type">LocalizationResources</code></td><td>Your translation objects</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="api-card">
+          <h4>LocalizationProvider</h4>
+          <p>Provides the instance to the component tree via React Context.</p>
+          <pre><span class="tok-tag">&lt;LocalizationProvider</span> <span class="tok-prop">localization</span>=<span class="tok-punc">{</span>localization<span class="tok-punc">}</span><span class="tok-tag">&gt;</span>
+  <span class="tok-tag">&lt;App /&gt;</span>
+<span class="tok-tag">&lt;/LocalizationProvider&gt;</span></pre>
+        </div>
+
+        <div class="api-card">
+          <h4>useTranslation()</h4>
+          <p>Returns the translation function bound to the active language.</p>
+          <pre><span class="tok-kw">const</span> { t } = <span class="tok-fn">useTranslation</span>();
+t(<span class="tok-str">"LOGIN"</span>); <span class="tok-cm">// → "Login"</span></pre>
+        </div>
+
+        <div class="api-card">
+          <h4>useLanguage()</h4>
+          <p>Returns the current language and a function to change it.</p>
+          <pre><span class="tok-kw">const</span> { language, setLanguage } = <span class="tok-fn">useLanguage</span>();
+<span class="tok-fn">setLanguage</span>(<span class="tok-str">"ta"</span>);</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- FALLBACK DEMO -->
+  <section id="fallback">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">Fallback behavior</div>
+        <h2>Missing a translation? Nothing breaks.</h2>
+        <p class="section-desc">
+          If a key isn't found in the active language, atum-localization looks in the fallback language.
+          Still nothing? It returns the key itself, so your UI stays legible instead of blank.
+        </p>
+      </div>
+
+      <div class="fallback-panel">
+        <div class="fallback-side">
+          <h4>Try a key</h4>
+          <div class="key-input-row">
+            <input class="key-input" id="fbInput" type="text" value="LOGIN" spellcheck="false" aria-label="Translation key">
+          </div>
+          <div class="key-chips">
+            <button class="chip" onclick="setFbKey('LOGIN')">LOGIN</button>
+            <button class="chip" onclick="setFbKey('SAVE')">SAVE</button>
+            <button class="chip" onclick="setFbKey('CANCEL')">CANCEL</button>
+            <button class="chip" onclick="setFbKey('UNKNOWN_KEY')">UNKNOWN_KEY</button>
+          </div>
+        </div>
+        <div class="fallback-side">
+          <h4>Resolution</h4>
+          <div class="fallback-result">
+            <div class="line"><span>t(<span id="fbKeyEcho">"LOGIN"</span>)</span></div>
+            <div class="line"><span>active (ta)</span><b id="fbActive">சேமி</b></div>
+            <div class="line"><span>fallback (en)</span><b id="fbFallback">—</b></div>
+            <div class="line"><span>output</span><span class="out" id="fbOutput">"சேமி"</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-install">
+        <img src="./atum-locale.svg" alt="atum-localization" style="border-radius:7px;flex-shrink:0;">
+        <p class="foot-desc">A lightweight, TypeScript-first localization library for React.</p>
+        <div class="install-box">
+          <span class="prompt">$</span>
+          <span class="pkg">npm install <span class="name">atum-localization</span></span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h6>Package</h6>
+          <a href="https://www.npmjs.com/package/atum-localization" target="_blank" rel="noopener">npm registry</a>
+          <a href="#getting-started">Documentation</a>
+          <a href="#api">API reference</a>
+        </div>
+        <div class="footer-col">
+          <h6>Exports</h6>
+          <a href="#api">createLocalization</a>
+          <a href="#api">LocalizationProvider</a>
+          <a href="#api">useTranslation / useLanguage</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>Built for React 18+ · ESM &amp; CJS</span>
+      <span class="license">MIT License</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- Hero demo: EN/TA switch ----
+  const demoStrings = {
+    en: { TITLE: "Atum Localization", LOGIN: "Login", SAVE: "Save", CANCEL: "Cancel", LANGUAGE: "LANGUAGE" },
+    ta: { TITLE: "அட்டம் லோக்கலைசேஷன்", LOGIN: "உள்நுழை", SAVE: "சேமி", CANCEL: "ரத்து", LANGUAGE: "மொழி" }
+  };
+
+  function setDemoLang(lang){
+    const s = demoStrings[lang];
+    const els = [
+      ['demoTitle','TITLE'], ['demoLogin','LOGIN'], ['demoSave','SAVE'],
+      ['demoCancel','CANCEL'], ['demoLangLabel','LANGUAGE']
+    ];
+    els.forEach(([id,key]) => {
+      const el = document.getElementById(id);
+      el.classList.remove('fade');
+      void el.offsetWidth;
+      el.textContent = s[key];
+      el.classList.add('fade');
+    });
+    document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+    document.getElementById('btnTa').classList.toggle('active', lang === 'ta');
+  }
+
+  // ---- Copy install command ----
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const label = document.getElementById('copyLabel');
+    try{
+      await navigator.clipboard.writeText('npm install atum-localization');
+      label.textContent = 'Copied';
+      setTimeout(() => label.textContent = 'Copy', 1600);
+    }catch(e){
+      label.textContent = 'npm i atum-localization';
+    }
+  });
+
+  // ---- Fallback behavior demo ----
+  const fbResources = {
+    ta: { LOGIN: "உள்நுழை", SAVE: "சேமி", CANCEL: "ரத்து" },
+    en: { LOGIN: "Login", SAVE: "Save", CANCEL: "Cancel" }
+  };
+
+  function resolveFb(key){
+    const activeVal = fbResources.ta[key];
+    const fallbackVal = fbResources.en[key];
+    let output, isMiss = false;
+    if (activeVal !== undefined){
+      output = activeVal;
+    } else if (fallbackVal !== undefined){
+      output = fallbackVal;
+    } else {
+      output = key;
+      isMiss = true;
+    }
+    document.getElementById('fbKeyEcho').textContent = '"' + key + '"';
+    document.getElementById('fbActive').textContent = activeVal !== undefined ? activeVal : '— missing';
+    document.getElementById('fbFallback').textContent = fallbackVal !== undefined ? fallbackVal : '— missing';
+    const outEl = document.getElementById('fbOutput');
+    outEl.textContent = '"' + output + '"';
+    outEl.classList.toggle('miss', isMiss);
+  }
+
+  function setFbKey(key){
+    document.getElementById('fbInput').value = key;
+    resolveFb(key);
+  }
+
+  document.getElementById('fbInput').addEventListener('input', (e) => {
+    resolveFb(e.target.value.trim() || 'LOGIN');
+  });
+
+  resolveFb('LOGIN');
+</script>
+
+</body>
+</html>
