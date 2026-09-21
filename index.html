@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atum Localization — Runtime i18n for React</title>
-<meta name="description" content="A lightweight, TypeScript-first localization library for React. Runtime language switching, fallback languages, built on useSyncExternalStore.">
+<meta name="description" content="A lightweight, TypeScript-first localization library for React. Runtime language switching, fallback languages, browser language detection, configurable language persistence, built on useSyncExternalStore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -630,7 +630,7 @@
     alt="Atum Localization"
     style="border-radius:7px; flex-shrink:0;"
   >
-  <span class="brand-sub">v1.0.2</span>
+  <span class="brand-sub">v0.1</span>
 </div>
     <div class="nav-links">
       <a href="#features">Features</a>
@@ -659,9 +659,9 @@
         <div class="eyebrow"><span class="dot"></span>TypeScript-first · React 18+</div>
         <h1>Localization that <span class="hl">just works</span> at runtime.</h1>
         <p class="hero-desc">
-          A lightweight localization library for React. Switch languages instantly, fall back gracefully when a
-          translation is missing, and keep components in sync with <code>useSyncExternalStore</code> —
-          no external localization dependencies required.
+          A lightweight i18n library for React. Switch languages instantly, fall back gracefully when a
+          translation is missing, detect browser locales, and persist language preferences with configurable storage —
+          all while keeping components in sync with <code>useSyncExternalStore</code>, with no external localization dependencies required.
         </p>
 
         <div class="hero-actions">
@@ -771,6 +771,27 @@
           <h4>Built on useSyncExternalStore</h4>
           <p>Subscriptions are handled the way React itself recommends for external state — efficient by default.</p>
         </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3c2.2 2.4 3.4 5.4 3.4 9s-1.2 6.6-3.4 9c-2.2-2.4-3.4-5.4-3.4-9S9.8 5.4 12 3z" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <h4>Browser language detection</h4>
+          <p>Detect the user's browser locale automatically and match regional locales before falling back to the base language.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <h4>Language persistence</h4>
+          <p>Persist the selected language with LocalStorage, SessionStorage, or disable persistence when you do not need it.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <h4>Configurable storage key</h4>
+          <p>Use the default storage key or provide your own key for language persistence.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -782,7 +803,7 @@
     <div class="wrap">
       <div class="section-head">
         <div class="section-eyebrow">Getting started</div>
-        <h2>Five steps to a localized app</h2>
+        <h2>Six steps to a localized app</h2>
         <p class="section-desc">The order matters here — each step builds on the last.</p>
       </div>
 
@@ -822,6 +843,25 @@
         <div class="step">
           <div class="step-num"><b>03</b></div>
           <div class="step-content">
+            <h4>Enable language detection</h4>
+            <p>Automatically detect the browser locale and persist an explicitly selected language using LocalStorage, SessionStorage, or no persistence.</p>
+            <pre><span class="fname">localization.ts</span><span class="tok-kw">export const</span> localization = <span class="tok-fn">createLocalization</span>({
+  <span class="tok-prop">defaultLanguage</span>: <span class="tok-str">"en"</span>,
+  <span class="tok-prop">fallbackLanguage</span>: <span class="tok-str">"en"</span>,
+  <span class="tok-prop">resources</span>: { en, ta },
+  <span class="tok-prop">detection</span>: {
+    <span class="tok-prop">enabled</span>: <span class="tok-kw">true</span>,
+    <span class="tok-prop">storage</span>: <span class="tok-str">"local"</span>,
+    <span class="tok-prop">storageKey</span>: <span class="tok-str">"atum-localization-language"</span>,
+  },
+});</pre>
+            <p style="margin-top:16px;">Detection priority: stored language → browser language → <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">defaultLanguage</code>. Regional locales try an exact match first, then the base language.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"><b>04</b></div>
+          <div class="step-content">
             <h4>Wrap your application</h4>
             <p>Mount <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">LocalizationProvider</code> once, at the root.</p>
             <pre><span class="fname">main.tsx</span><span class="tok-kw">import</span> { LocalizationProvider } <span class="tok-kw">from</span> <span class="tok-str">"atum-localization"</span>;
@@ -834,7 +874,7 @@
         </div>
 
         <div class="step">
-          <div class="step-num"><b>04</b></div>
+          <div class="step-num"><b>05</b></div>
           <div class="step-content">
             <h4>Translate content</h4>
             <p><code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">useTranslation()</code> returns a <code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">t()</code> function scoped to the current language.</p>
@@ -848,7 +888,7 @@
         </div>
 
         <div class="step">
-          <div class="step-num"><b>05</b></div>
+          <div class="step-num"><b>06</b></div>
           <div class="step-content">
             <h4>Change language</h4>
             <p><code style="font-family:var(--font-mono);color:var(--accent);background:var(--teal-soft);padding:1px 6px;border-radius:4px;">useLanguage()</code> gives you the active language and a setter — this is what powers the demo above.</p>
@@ -892,6 +932,27 @@
               <tr><td>defaultLanguage</td><td><code class="type">string</code></td><td>Initial app language</td></tr>
               <tr><td>fallbackLanguage</td><td><code class="type">string</code></td><td>Used when a key is missing</td></tr>
               <tr><td>resources</td><td><code class="type">LocalizationResources</code></td><td>Your translation objects</td></tr>
+              <tr><td>detection</td><td><code class="type">LanguageDetectionOptions</code></td><td>Browser language detection and persistence configuration</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="api-card">
+          <h4>detection</h4>
+          <p>Configures browser language detection and language persistence.</p>
+          <pre><span class="tok-kw">detection</span>: {
+  <span class="tok-prop">enabled</span>: <span class="tok-kw">true</span>,
+  <span class="tok-prop">storage</span>: <span class="tok-str">"local"</span>,
+  <span class="tok-prop">storageKey</span>: <span class="tok-str">"atum-localization-language"</span>,
+}</pre>
+          <table class="options-table">
+            <thead>
+              <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>enabled</td><td><code class="type">boolean</code></td><td>false</td><td>Enables browser language detection and persistence</td></tr>
+              <tr><td>storage</td><td><code class="type">"local" | "session" | "none"</code></td><td>"local"</td><td>Controls where the selected language is persisted</td></tr>
+              <tr><td>storageKey</td><td><code class="type">string</code></td><td>"atum-localization-language"</td><td>Storage key used to persist the language</td></tr>
             </tbody>
           </table>
         </div>
